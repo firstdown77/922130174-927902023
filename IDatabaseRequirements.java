@@ -1,9 +1,6 @@
 package hw2;
-import java.util.Map;
 
 public interface IDatabaseRequirements {
-
-	Map<String, String> getTags();
 
     /** Returns an array with three String elements:
     * 1. nodeLatitude.  2. nodeLongitude.  3. nodeUser
