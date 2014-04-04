@@ -17,14 +17,13 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author raphaelas
  *
  */
-public class InnerParse extends DefaultHandler {
-	//TODO: Make this its own class independent of OSMParser.
+public class WayHandler extends DefaultHandler implements IInnerParse {
 	//This class handles parsing of Way child nodes.
 	private OSMParser parentParser;
     private XMLReader theReader;
 
 
-	InnerParse(XMLReader x, OSMParser o) {
+	WayHandler(XMLReader x, OSMParser o) {
 		parentParser = o;
 		theReader = x;
 	}
@@ -34,7 +33,7 @@ public class InnerParse extends DefaultHandler {
     	if (qName.equals("tag")) {
     		String key = attributes.getValue("k");
     		String value = attributes.getValue("v");
-    		parentParser.addKV(key, value);
+    		parentParser.addWayTag(key, value);
     	}
     	else if (qName.equals("nd")) {
 	    	String refValue = attributes.getValue("ref");
@@ -44,9 +43,6 @@ public class InnerParse extends DefaultHandler {
     
     public void endElement(String uri, String localName, String qName)
             throws SAXException {
-        if (qName.equals("node")) {
-        	theReader.setContentHandler(parentParser);
-        }
     	if (qName.equals("way")) {
         	parentParser.determineClosedWay();
             theReader.setContentHandler(parentParser);

@@ -46,7 +46,9 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	private ICalculateCircumscribedCircleArea area;
 	private ITagsRequired tagsRequired;
 	private Map<String, String> tagsMap;
-
+	private String nodeID;
+	private Map<String, String> wayTags;
+	
 	/**
 	 * Default constructor.  Called in main function.
 	 */
@@ -82,7 +84,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	throws SAXException
     {
     	if (qName.equals("node")) {
-    		String nodeID = atts.getValue("id");
+    		nodeID = atts.getValue("id");
     		String nodeLatitude = atts.getValue("lat");
     		String nodeLongitude = atts.getValue("lon");
     		String nodeUser = atts.getValue("user");
@@ -109,7 +111,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	    	    	users.add(atts.getValue(i));
 	    		}
 	    	}
-		    xmlReader.setContentHandler(new InnerParse(xmlReader, this));
+		    xmlReader.setContentHandler(new WayHandler(xmlReader, this));
     	}
     }
     
@@ -127,8 +129,12 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
      * @param nodeValue
      */
     public void addKV(String nodeKey, String nodeValue) {
-    	db.saveNodeTag(id, nodeKey, nodeValue);
+    	db.saveNodeTag(nodeID, nodeKey, nodeValue);
     	determineContainsRequiredTags();
+    }
+    
+    public void addWayTag(String key, String value) {
+    	wayTags.put(key, value);
     }
     
     
@@ -138,6 +144,9 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     	}
     }
     
+    /**
+     * 
+     */
     private void printJSONArray() {
 		uniqueifyNodes(); //Makes elementRefs unique.
 		String[][] wayCoordinates = getWayCoordinates();
@@ -311,7 +320,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
    */
   public static void main(String[] args) {
 	  OSMParser theWorkingParser = new OSMParser();
-	  ITagsRequired theMap = null;
+	  ITagsRequired theMap = new TempTagsRequired();
 	  theWorkingParser.parse("./lib/new-york-latest-full.osm", theMap);
   }
   
@@ -358,5 +367,5 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
           throw new SAXException(message);
       }
   }
-  
+
 }
