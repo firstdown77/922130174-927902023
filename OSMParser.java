@@ -1,48 +1,22 @@
 package hw2;
 
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.EndElement;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
-//JAXP packages
-
 import org.xml.sax.Attributes;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
-import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.*;
-
-import com.sun.org.apache.xml.internal.resolver.readers.SAXParserHandler;
-
-//import javax.xml.parsers.*;
-//import org.xml.sax.*;
-//import java.io.*;
 
 
 /**
@@ -51,44 +25,6 @@ import com.sun.org.apache.xml.internal.resolver.readers.SAXParserHandler;
  *
  */
 public class OSMParser extends DefaultHandler implements IOSMParser{
-    /**
-	 * @author raphaelas
-	 *
-	 */
-	public class WayHandler extends DefaultHandler {
-		//TODO: Make this its own class independent of OSMParser.
-		//This class handles parsing of Way child nodes.
-		private OSMParser parentParser;
-	    private XMLReader theReader;
-
-
-		WayHandler(XMLReader x, OSMParser o) {
-			parentParser = o;
-			theReader = x;
-		}
-		
-	    public void startElement(String uri, String localName, String qName,
-	    		Attributes attributes) throws SAXException {
-	    	if (qName.equals("nd")) {
-		    	String refValue = attributes.getValue(0); //The 'nd ref' value.
-		    	parentParser.addRef(refValue);
-	    	}
-	    }
-	    
-	    public void endElement(String uri, String localName, String qName)
-	            throws SAXException {
-	        if (qName.equals("way")) {
-	        	parentParser.determineClosedWay();
-	            theReader.setContentHandler(parentParser);
-	        }
-	    }
-	   
-	}
-	
-	public OSMParser(XMLReader r) {
-		xmlReader = r;
-	}
-
 	/** Constants used for JAXP 1.2 */
     static final String JAXP_SCHEMA_LANGUAGE =
         "http://java.sun.com/xml/jaxp/properties/schemaLanguage";
@@ -96,39 +32,61 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
         "http://www.w3.org/2001/XMLSchema";
     static final String JAXP_SCHEMA_SOURCE =
         "http://java.sun.com/xml/jaxp/properties/schemaSource";
-
-    //private JSONArray theArray;
     private String id;
     private String name;
     private String website;
     private String wiki;
     private int numNodes;
-    private ArrayList<String> users;
-    private HashMap<String, String[]> nodeMap;
-    
+    private ArrayList<String> users;    
     boolean inWay = false;
     private XMLReader xmlReader;
     private ArrayList<String> elementRefs;
+	private IJSONArray jArray;
+	private IDatabaseRequirements db;
+	private ICalculateCircumscribedCircleArea area;
+	private ITagsRequired tagsRequired;
+	private Map<String, String> tagsMap;
 
-    
-    
+	/**
+	 * Default constructor.  Called in main function.
+	 */
+	public OSMParser() {
+		
+	}
+	
+	/**
+	 * 
+	 * @param r
+	 */
+	public OSMParser(XMLReader r, ITagsRequired i) {
+		xmlReader = r;
+		tagsRequired = i;
+	}
+
+
+	
+	
+    /**
+     * 
+     */
     public void startDocument() throws SAXException {
     	elementRefs = new ArrayList<String>();
-    	nodeMap = new HashMap<String, String[]>(1000000);
+    	tagsMap = tagsRequired.getTags();
     }
     
-    // Parser calls this for each element in a document
+    /**
+     * Parser calls this for each element in a document
+     */
     public void startElement(String namespaceURI, String localName,
                              String qName, Attributes atts)
 	throws SAXException
     {
     	if (qName.equals("node")) {
-    		String nodeID = atts.getValue("id"); //nodeID
-    		String[] nodeAttsArray = new String[3];
-    		nodeAttsArray[0] = atts.getValue("lat"); //nodeLatitude
-    		nodeAttsArray[1] = atts.getValue("lon"); //nodeLongitude
-    		nodeAttsArray[2] = atts.getValue("user"); //nodeUser
-    		nodeMap.put(nodeID, nodeAttsArray);
+    		String nodeID = atts.getValue("id");
+    		String nodeLatitude = atts.getValue("lat");
+    		String nodeLongitude = atts.getValue("lon");
+    		String nodeUser = atts.getValue("user");
+    		db.saveNodeData(nodeID, nodeLatitude, nodeLongitude, nodeUser);
     	}
     	else if (qName.equals("way")) {
     		inWay = true;
@@ -151,48 +109,111 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	    	    	users.add(atts.getValue(i));
 	    		}
 	    	}
-		    xmlReader.setContentHandler(new WayHandler(xmlReader, this));
+		    xmlReader.setContentHandler(new InnerParse(xmlReader, this));
     	}
     }
     
+    /**
+     * 
+     * @param refToAdd
+     */
     public void addRef(String refToAdd) {
     	elementRefs.add(refToAdd);
     }
     
-    private void determineClosedWay() {
-    	/*Determines if a recently parsed way is a closed way or not.
-    	A closed way is a way that begins and ends at the same coordinates.
-    	TODO: This method does not check if node's with different ID's might
-    	have the same coordinates - and really be a closed way when my method
-    	thinks its an open way. */
-    	int theSize = elementRefs.size();
-    	if (theSize > 0 && elementRefs.get(0).equals(elementRefs.get(theSize -  1))) {
-    	//If this is a closed way:
-    		System.out.println("Closed way!");
-    		uniqueifyNodes();
-    		String[][] wayCoordinates = getWayCoordinates();
-    		String[][] uniqueWayCoordinates = uniqueifyCoordinates(wayCoordinates);
-    		//Temporary experimental JSON object.  TODO for David is to create the real JSON array.
-    		JSONObject jobj = new JSONObject();
-	    	jobj.put("id", id);
-	    	if (name != null) jobj.put("name", name);
-	    	if (website != null) jobj.put("website", website);
-	    	if (wiki != null) jobj.put("wiki", wiki);
-	    	jobj.put("numNodes", numNodes);
-	    	jobj.put("coordinates", uniqueWayCoordinates);
-	    	jobj.put("users", users);
-	    	System.out.println(jobj);
+    /**
+     * 
+     * @param nodeKey
+     * @param nodeValue
+     */
+    public void addKV(String nodeKey, String nodeValue) {
+    	db.saveNodeTag(id, nodeKey, nodeValue);
+    	determineContainsRequiredTags();
+    }
+    
+    
+    public void determineIfShouldPrint() {
+    	if (determineContainsRequiredTags() && determineClosedWay()) {
+    		printJSONArray();
     	}
+    }
+    
+    private void printJSONArray() {
+		uniqueifyNodes(); //Makes elementRefs unique.
+		String[][] wayCoordinates = getWayCoordinates();
+		String[][] uniqueWayCoordinates = uniqueifyCoordinates(wayCoordinates);
+    	double circumscribedCircleArea = area.circumscribedArea(uniqueWayCoordinates);
+    	String[] usersArray = (String[]) users.toArray();
+    	JSONArray jArrayToPrint = jArray.printJSONArray(id, name, website, wiki, numNodes,
+    			uniqueWayCoordinates, circumscribedCircleArea, usersArray);
+    	System.out.println(jArrayToPrint);
     	elementRefs.clear();
+    }
+    /**
+     *  Determines if a recently parsed way is a closed way or not.
+     *	A closed way is a way that begins and ends at the same coordinates.
+     *
+     *  This method does check if nodes with different ID's might
+     *	have the same coordinates - and really be a closed way when
+     *  it may seem that it's an open way.
+     */
+    public boolean determineClosedWay() {
+    	// Lots of preparations before determining if a node is a closed way:
+    	// Note: the elementRefs have not been made unique yet.
+    	int theSize = elementRefs.size();
+    	String firstRef = elementRefs.get(0);
+    	String lastRef = elementRefs.get(theSize - 1);
+    	String[] firstNodeData = db.getNodeData(firstRef);
+    	String[] lastNodeData = db.getNodeData(lastRef);
+    	String[] firstRefCoords = new String[1];
+    	String[] lastRefCoords = new String[1];
+    	firstRefCoords[0] = firstNodeData[0];
+    	firstRefCoords[1] = firstNodeData[1];
+    	lastRefCoords[0] = lastNodeData[0];
+    	lastRefCoords[1] = lastNodeData[1];
+    	//End of preparations.
+    	
+    	/* If this is a closed way (the first and last nodes have the same ID
+    	   or have the same coordinates: */
+    	if (theSize > 0 &&
+    			(firstRef.equals(lastRef) || firstRefCoords.equals(lastRefCoords))) {
+    		return true;
+    	}
+    	return false;
 	}
+    
+    public boolean determineContainsRequiredTags() {
+    	int containsCount = 0;
+    	String[] keys = (String[]) tagsMap.keySet().toArray();
+    	String[][] currWayTags = db.getAllNodeTags(id);
+    	for (int i = 0; i < keys.length; i++) {
+    		String currTagValue = tagsMap.get(keys[i]);
+    		String[] arrayToCompare = new String[1];
+    		arrayToCompare[0] = keys[0];
+    		arrayToCompare[1] = currTagValue;
+    		List<String> listToCompare1 = Arrays.asList(arrayToCompare);
+    		List<String> listToCompare2 = Arrays.asList(currWayTags[i]);
+    		if (listToCompare1.containsAll(listToCompare2)) {
+    			containsCount++;
+    		}
+    	}
+    	if (keys.length == containsCount) {
+    		return true;
+    	}
+    	return false;
+    }
 
-	// Parser calls this once after parsing a document
+    /**
+     * Parser calls this once after parsing a document.
+     */
     public void endDocument() throws SAXException {
     	System.out.println("All done!");
     }
   
+    /**
+     * Removes nodes with duplicate IDs from the elementRefs ArrayList.
+     */
     public void uniqueifyNodes() {
-    	//Removes nodes with duplicate IDs from the elementRefs ArrayList.
     	HashSet<String> hs = new HashSet<String>();
     	hs.addAll(elementRefs);
     	elementRefs.clear();
@@ -201,47 +222,42 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     	numNodes += elementRefs.size();
     }
     
+    /**
+     * Gets a way's coordinates from its corresponding node.  The corresponding
+     * node is the node that has an 'nd ref' defined as one of the way's children.
+   	 * Also adds contributing users to the 'users' array.
+     * Note: elementRefs must already have been made unique.
+     * @return
+     */
     public String[][] getWayCoordinates() {
-    	/*Gets a way's coordinates from its corresponding node.  The corresponding
-    	 * node is the node that has an 'nd ref' defined as one of the way's children.
-    	 Also adds contributing users to the 'users' array. */
-    	String[][] theCoords = new String[elementRefs.size()][1];
+    	String[][] theCoords = new String[elementRefs.size()][2]; 
     	for (int i = 0; i < elementRefs.size(); i++) {
-    		theCoords[i][0] = nodeMap.get(elementRefs.get(i))[0]; //nodeLatitude
-    		theCoords[i][1] = nodeMap.get(elementRefs.get(i))[1]; //nodeLongitude
-    		users.add(nodeMap.get(elementRefs.get(i))[2]); //nodeUser
+    		String[] theAtts = db.getNodeData(elementRefs.get(i));
+    		theCoords[i] = theAtts.clone();
     	}
     	return theCoords;
     }
     
+    /**
+     * Removes duplicate coordinate pairs from the 'wayCoordinates' 2D array.
+     * 
+     * @param wayCoords
+     * @return
+     */
     public String[][] uniqueifyCoordinates(String[][] wayCoords) {
-    	// Removes duplicate coordinate pairs from the 'wayCoordinates' 2D array.
     	HashSet<String[]> keys = new HashSet<String[]>();
     	for (int i = 0; i < wayCoords.length; i++) {
     		keys.add(wayCoords[i]);
     	}
-    	
     	return (String[][]) keys.toArray();
-/*
-		This dead code should soon be deleted:
-    	Iterator<String> keyIter = keys.iterator();
-
-    	while (keyIter.hasNext()) {
-    	    String key = keyIter.next();
-    	    String[] value = nodeMap.get(key);
-    	    reversedMap.put(value, key);    	    
-    	}
-	    Set<String[]> uniqueKeys = reversedMap.keySet();
-	    return uniqueKeys;
-	    //String[] uniqueKeyArray = (String[]) uniqueKeys.toArray();
-*/
-    	
     }
     
-    
+  /**
+   * The central parse method.  Takes the big 2.5 GB OSM file and a
+   * class that implements the ITagsRequired interface.
+   */
   public JSONArray parse(String osmFile, ITagsRequired tagsRequired) {
-	  //The central parse method.  Takes the big 2.5 GB OSM file and a
-	  //class that implements the ITagsRequired interface.
+
 	  
         // Create a JAXP SAXParserFactory and configure it
         SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -249,7 +265,6 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
         // Set namespaceAware to true to get a parser that corresponds to
         // the default SAX2 namespace feature setting.  This is necessary
         // because the default value from JAXP 1.0 was defined to be false.
-        
         spf.setNamespaceAware(true);
 
         // Create a JAXP SAXParser
@@ -270,7 +285,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 		}
 
         // Set the ContentHandler of the XMLReader
-        xmlReader.setContentHandler(new OSMParser(xmlReader));
+        xmlReader.setContentHandler(new OSMParser(xmlReader, tagsRequired));
 
         // Set an ErrorHandler before parsing
         xmlReader.setErrorHandler(new MyErrorHandler(System.err));
@@ -287,14 +302,23 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	    return null;
   }
   
+  /**
+   * The main method starts the parser using a default constructor
+   * and not the constructor that takes an XMLReader as a parameter.
+   * The 1 parameter constructor is used in the parse(..) method.
+   * 
+   * @param args
+   */
   public static void main(String[] args) {
-	  //The main method.  All it does is start the parser.
-	  OSMParser theWorkingParser = new OSMParser(null);
-	  TagsMap theMap = new TagsMap();
+	  OSMParser theWorkingParser = new OSMParser();
+	  ITagsRequired theMap = null;
 	  theWorkingParser.parse("./lib/new-york-latest-full.osm", theMap);
   }
   
-  // Error handler to report errors and warnings
+  /**
+   *  Error handler to report errors and warnings
+   *
+   */
   private static class MyErrorHandler implements ErrorHandler {
       /** Error handler output goes here */
       private PrintStream out;
