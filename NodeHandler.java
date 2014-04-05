@@ -6,12 +6,13 @@ package hw2;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * @author raphaelas
  *
  */
-public class NodeHandler implements IInnerParse {
+public class NodeHandler extends DefaultHandler implements IInnerParse {
 	private OSMParser parentParser;
     private XMLReader theReader;
 

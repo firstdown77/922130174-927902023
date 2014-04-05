@@ -20,6 +20,7 @@ import org.xml.sax.helpers.*;
 
 
 /**
+ * The central OSM Parser class.
  * 
  * @author raphaelas
  *
@@ -57,27 +58,20 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 	}
 	
 	/**
+	 * Constructor that is called in parse function.
 	 * 
-	 * @param r
+	 * @param r An XMLReader.
+	 * @param i A class implementing ITagsRequired.
 	 */
 	public OSMParser(XMLReader r, ITagsRequired i) {
 		xmlReader = r;
 		tagsRequired = i;
-	}
-
-
-	
-	
-    /**
-     * 
-     */
-    public void startDocument() throws SAXException {
     	elementRefs = new ArrayList<String>();
     	tagsMap = tagsRequired.getTags();
-    }
-    
+	}
+	
     /**
-     * Parser calls this for each element in a document
+     * Parser calls this for each element in the document
      */
     public void startElement(String namespaceURI, String localName,
                              String qName, Attributes atts)
@@ -89,55 +83,56 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     		String nodeLongitude = atts.getValue("lon");
     		String nodeUser = atts.getValue("user");
     		db.saveNodeData(nodeID, nodeLatitude, nodeLongitude, nodeUser);
+		    xmlReader.setContentHandler(new NodeHandler(xmlReader, this));
     	}
     	else if (qName.equals("way")) {
     		inWay = true;
 		    users = new ArrayList<String>();
-    		for (int i = 0; i < atts.getLength(); i++) {
-    			String currAtts = atts.getLocalName(i);
-    			if (currAtts.equals("id")) {
-    				id = atts.getValue(i);
-    			}
-	    		else if (currAtts.equals("name")) {
-	    			name = atts.getValue(i);
-	    		}
-	    		else if (currAtts.equals("website")) {
-	    			website = atts.getValue(i);
-	    		}
-	    		else if (currAtts.equals("wiki")) {
-	    			wiki = atts.getValue(i);
-	    		}
-	    		else if (currAtts.equals("user")) {
-	    	    	users.add(atts.getValue(i));
-	    		}
-	    	}
+		    id = atts.getValue("id");
+		    name = atts.getValue("name");
+		    website = atts.getValue("website");
+		    wiki = atts.getValue("wiki");
+		    users.add(atts.getValue("user"));
 		    xmlReader.setContentHandler(new WayHandler(xmlReader, this));
     	}
     }
     
     /**
+     * This is called from the WayHandler class as it iterates through
+     * all of a way's node references.
      * 
-     * @param refToAdd
+     * @param refToAdd A reference to a node.
      */
     public void addRef(String refToAdd) {
     	elementRefs.add(refToAdd);
     }
     
     /**
+     * Saves a node's tag to the database by nodeID.
      * 
-     * @param nodeKey
-     * @param nodeValue
+     * @param nodeKey A node's tag's key.
+     * @param nodeValue A node's tag's value.
      */
     public void addKV(String nodeKey, String nodeValue) {
     	db.saveNodeTag(nodeID, nodeKey, nodeValue);
-    	determineContainsRequiredTags();
+    	//determineContainsRequiredTags();
     }
     
+    /**
+     * Adds a tag to the current way's tags Map.
+     * 
+     * @param key A way's tag's key.
+     * @param value A way's tag's value.
+     */
     public void addWayTag(String key, String value) {
     	wayTags.put(key, value);
     }
     
-    
+    /**
+     * Determines if the current way should be outputted.
+     * The assignment calls for ways that contain the required
+     * tags and are closed ways to be outputted.
+     */
     public void determineIfShouldPrint() {
     	if (determineContainsRequiredTags() && determineClosedWay()) {
     		printJSONArray();
@@ -145,7 +140,9 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     }
     
     /**
-     * 
+     * Prints a JSONArray containing the way's information.
+     * Printing preparations include getting the way coordinates,
+     * and making the node references and way coordinates unique.
      */
     private void printJSONArray() {
 		uniqueifyNodes(); //Makes elementRefs unique.
@@ -162,7 +159,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
      *  Determines if a recently parsed way is a closed way or not.
      *	A closed way is a way that begins and ends at the same coordinates.
      *
-     *  This method does check if nodes with different ID's might
+     *  This method checks if nodes with different ID's might
      *	have the same coordinates - and really be a closed way when
      *  it may seem that it's an open way.
      */
@@ -180,10 +177,8 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     	firstRefCoords[1] = firstNodeData[1];
     	lastRefCoords[0] = lastNodeData[0];
     	lastRefCoords[1] = lastNodeData[1];
-    	//End of preparations.
-    	
     	/* If this is a closed way (the first and last nodes have the same ID
-    	   or have the same coordinates: */
+    	   or have the same coordinates): */
     	if (theSize > 0 &&
     			(firstRef.equals(lastRef) || firstRefCoords.equals(lastRefCoords))) {
     		return true;
@@ -191,18 +186,36 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     	return false;
 	}
     
+    /**
+     * This method concatenates the way's tags from the WayHandler
+     * and also from the NodeHandler - because both Way elements 
+     * and a Way's node elements contain tags.
+     * 
+     * @return true if the current Way contains all the given required tags
+     * and false if the Way does not contain all of them.
+     */
     public boolean determineContainsRequiredTags() {
     	int containsCount = 0;
     	String[] keys = (String[]) tagsMap.keySet().toArray();
     	String[][] currWayTags = db.getAllNodeTags(id);
+    	String[] wayTagsFromWay = (String[]) wayTags.entrySet().toArray();
+    	String[][] wayTagsToAdd = new String[wayTagsFromWay.length][1];
+    	String[][] updatedCurrWayTags = new String[wayTagsFromWay.length +
+    	                                           currWayTags.length][1];
+    	for (int i = 0; i < wayTagsFromWay.length; i++) {
+    		//TODO: Make sure this works.  Cloning may be necessary.
+    		wayTagsToAdd[i] = wayTagsFromWay[i].split("=");
+    		// 2D array concatenation.
+    		updatedCurrWayTags = concatArrays(currWayTags, wayTagsToAdd);
+    	}
     	for (int i = 0; i < keys.length; i++) {
     		String currTagValue = tagsMap.get(keys[i]);
-    		String[] arrayToCompare = new String[1];
-    		arrayToCompare[0] = keys[0];
-    		arrayToCompare[1] = currTagValue;
-    		List<String> listToCompare1 = Arrays.asList(arrayToCompare);
-    		List<String> listToCompare2 = Arrays.asList(currWayTags[i]);
-    		if (listToCompare1.containsAll(listToCompare2)) {
+    		String[] requiredTagsArray = new String[1];
+    		requiredTagsArray[0] = keys[0];
+    		requiredTagsArray[1] = currTagValue;
+    		List<String> requiredTagsList = Arrays.asList(requiredTagsArray);
+    		List<String> wayTagsList = Arrays.asList(updatedCurrWayTags[i]);
+    		if (wayTagsList.containsAll(requiredTagsList)) {
     			containsCount++;
     		}
     	}
@@ -213,6 +226,22 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
     }
 
     /**
+     * Taken from http://stackoverflow.com/questions/13722538/
+     * how-to-concatenate-two-dimensional-arrays-in-java
+     * 
+     * @param currWayTags
+     * @param wayTagsToAdd
+     * @return
+     */
+    private String[][] concatArrays(String[][] currWayTags,
+			String[][] wayTagsToAdd) {
+    	String[][] result = new String[currWayTags.length + wayTagsToAdd.length][];
+    	System.arraycopy(currWayTags, 0, result, 0, currWayTags.length);
+    	System.arraycopy(wayTagsToAdd, 0, result, currWayTags.length, wayTagsToAdd.length);
+    	return result;
+	}
+
+	/**
      * Parser calls this once after parsing a document.
      */
     public void endDocument() throws SAXException {
@@ -236,22 +265,30 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
      * node is the node that has an 'nd ref' defined as one of the way's children.
    	 * Also adds contributing users to the 'users' array.
      * Note: elementRefs must already have been made unique.
-     * @return
+     * @return a double array of all a Way's coordinates.
      */
     public String[][] getWayCoordinates() {
-    	String[][] theCoords = new String[elementRefs.size()][2]; 
+    	String[][] theCoords = new String[elementRefs.size()][1]; 
     	for (int i = 0; i < elementRefs.size(); i++) {
     		String[] theAtts = db.getNodeData(elementRefs.get(i));
-    		theCoords[i] = theAtts.clone();
+    		addUser(theAtts);
+    		//TODO: Check that this works and also check that cloning is necessary.
+    		String[] toClone = Arrays.copyOfRange(theAtts, 0, 1);
+    		theCoords[i] = toClone.clone();
     	}
     	return theCoords;
+    }
+    
+    public void addUser(String[] theAtts) {
+    	users.add(theAtts[2]);
     }
     
     /**
      * Removes duplicate coordinate pairs from the 'wayCoordinates' 2D array.
      * 
-     * @param wayCoords
-     * @return
+     * @param wayCoords a double array of all an array's coordinates
+     * which may or may not be unique.
+     * @return a double array of all an array's unique coordinates.
      */
     public String[][] uniqueifyCoordinates(String[][] wayCoords) {
     	HashSet<String[]> keys = new HashSet<String[]>();
@@ -316,7 +353,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
    * and not the constructor that takes an XMLReader as a parameter.
    * The 1 parameter constructor is used in the parse(..) method.
    * 
-   * @param args
+   * @param args this parameter is not used.
    */
   public static void main(String[] args) {
 	  OSMParser theWorkingParser = new OSMParser();
@@ -352,7 +389,7 @@ public class OSMParser extends DefaultHandler implements IOSMParser{
 
       // The following methods are standard SAX ErrorHandler methods.
       // See SAX documentation for more info.
-
+      
       public void warning(SAXParseException spe) throws SAXException {
           out.println("Warning: " + getParseExceptionInfo(spe));
       }

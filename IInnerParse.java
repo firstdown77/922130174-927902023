@@ -7,10 +7,10 @@ import org.xml.sax.SAXException;
 public interface IInnerParse {
 	/**
 	 * 
-	 * @param uri
-	 * @param localName
-	 * @param qName
-	 * @param attributes
+	 * @param uri extended from DefaultHandler
+	 * @param localName extended from DefaultHandler
+	 * @param qName extended from DefaultHandler
+	 * @param attributes extended from DefaultHandler
 	 */
 	void startElement(String uri, String localName, String qName,
     		Attributes attributes) throws SAXException;

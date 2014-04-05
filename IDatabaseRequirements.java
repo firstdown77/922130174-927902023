@@ -14,8 +14,8 @@ public interface IDatabaseRequirements {
      * Returns an array with three String elements:
      * 1. nodeLatitude.  2. nodeLongitude.  3. nodeUser
      * 
-     * @param nodeID
-     * @return
+     * @param nodeID A unique nodeID - a String of an integer.
+     * @return a String array of size 3.
      */
 	String[] getNodeData(String nodeID);
 	
@@ -24,8 +24,8 @@ public interface IDatabaseRequirements {
 	 * The returned 2D array must be arrays each containing
 	 * 2 elements: a tag's key and a tag's value. 
 	 * 
-	 * @param nodeID
-	 * @return
+	 * @param nodeID A unique nodeID - a String of an integer.
+	 * @return 2D String array containing all a node's tags.
 	 */
 	String[][] getAllNodeTags(String nodeID);
 
@@ -36,12 +36,11 @@ public interface IDatabaseRequirements {
      * The nodeTags double array is a list of every tag's key, value pairs (so each
      * inner array of the 2D array contains just 2 elements: key, value.)
      * 
-     * @param nodeID
-     * @param nodeLatitude
-     * @param nodeLongitude
-     * @param nodeUser
-     * @param nodeTags
-     * @return
+     * @param nodeID a node's ID number - this should already have been made unique.
+     * @param nodeLatitude a node's latitude - a String of a double.
+     * @param nodeLongitude a node's longitude - a String of a double.
+     * @param nodeUser a node's user - a String.
+     * @return True if save successful, false if failed.
      */
 	boolean saveNodeData(String nodeID, String nodeLatitude,
 			String nodeLongitude, String nodeUser);
@@ -50,10 +49,10 @@ public interface IDatabaseRequirements {
 	/**
 	 * Saves a node's tag - a key, value pair.  Must be accessible by nodeID.
 	 * 
-	 * @param nodeID
-	 * @param nodeKey
-	 * @param nodeValue
-	 * @return
+	 * @param nodeID A unique nodeID - a String of an integer.
+	 * @param nodeKey A node key - a String.
+	 * @param nodeValue A node value - a String.
+	 * @return true if save successful, false if failed.
 	 */
 	boolean saveNodeTag(String nodeID, String nodeKey, String nodeValue);
 

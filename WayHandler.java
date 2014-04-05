@@ -22,12 +22,19 @@ public class WayHandler extends DefaultHandler implements IInnerParse {
 	private OSMParser parentParser;
     private XMLReader theReader;
 
-
+    /**
+     * 
+     * @param x
+     * @param o
+     */
 	WayHandler(XMLReader x, OSMParser o) {
 		parentParser = o;
 		theReader = x;
 	}
 	
+	/**
+	 * 
+	 */
     public void startElement(String uri, String localName, String qName,
     		Attributes attributes) throws SAXException {
     	if (qName.equals("tag")) {
@@ -41,6 +48,9 @@ public class WayHandler extends DefaultHandler implements IInnerParse {
     	}
     }
     
+    /**
+     * 
+     */
     public void endElement(String uri, String localName, String qName)
             throws SAXException {
     	if (qName.equals("way")) {
