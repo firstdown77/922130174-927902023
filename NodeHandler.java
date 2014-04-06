@@ -3,7 +3,7 @@
  */
 package hw2;
 
-import org.xml.sax.Attributes;
+//import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
@@ -13,7 +13,7 @@ import org.xml.sax.helpers.DefaultHandler;
  *
  */
 public class NodeHandler extends DefaultHandler implements IInnerParse {
-	private OSMParser parentParser;
+	private InnerOSMParser parentParser;
     private XMLReader theReader;
 
     /**
@@ -21,7 +21,7 @@ public class NodeHandler extends DefaultHandler implements IInnerParse {
      * @param x
      * @param o
      */
-	NodeHandler(XMLReader x, OSMParser o) {
+	NodeHandler(XMLReader x, InnerOSMParser o) {
 		parentParser = o;
 		theReader = x;
 	}
@@ -29,11 +29,8 @@ public class NodeHandler extends DefaultHandler implements IInnerParse {
 	/* (non-Javadoc)
 	 * @see hw2.IInnerParse#startElement(java.lang.String, java.lang.String, java.lang.String, org.xml.sax.Attributes)
 	 */
-	@Override
-	/**
-	 * 
-	 */
-	public void startElement(String uri, String localName, String qName,
+	//@Override
+	/*public void startElement(String uri, String localName, String qName,
 			Attributes attributes) throws SAXException {
     	if (qName.equals("tag")) {
     		String key = attributes.getValue("k");
@@ -41,7 +38,7 @@ public class NodeHandler extends DefaultHandler implements IInnerParse {
     		parentParser.addKV(key, value);
     	}
 
-	}
+	}*/
 
 	/* (non-Javadoc)
 	 * @see hw2.IInnerParse#endElement(java.lang.String, java.lang.String, java.lang.String)
