@@ -47,7 +47,7 @@ public class NodeDAO implements INodeDAO {
 	@Override
 	public Node getNodeData(String nodeID) {
 		open();
-		String SQL_QUERY= "Select * from Node where node_id='"+nodeID+"'";
+		String SQL_QUERY= "Select * from Node where node_id="+nodeID;
 		Statement stmt;
 		Node n = null;
 		
@@ -70,7 +70,7 @@ public class NodeDAO implements INodeDAO {
 
 	@Override
 	public Collection<NodeTag> getAllNodeTags(String nodeID) {
-		String SQL_QUERY= "Select * from nodetag where node_id='"+nodeID+"'";
+		String SQL_QUERY= "Select * from nodetag where node_id="+nodeID;
 		Statement stmt;
 		
 		ArrayList<NodeTag> tags = new ArrayList<NodeTag>();
@@ -94,7 +94,7 @@ public class NodeDAO implements INodeDAO {
 
 	@Override
 	public boolean saveNodeData(Node node) {
-		String SQL_QUERY= "Select node_id from node where _id='"+node.getId()+"'";
+		String SQL_QUERY= "Select node_id from node where _id="+node.getId();
 		Statement stmt;
 		open();
 		
@@ -110,7 +110,7 @@ public class NodeDAO implements INodeDAO {
 			SQL_QUERY = "INSERT INTO node (node_id, user, longitude, latitude)" +
 	                   "VALUES (?, ?, ?, ?)";
 			PreparedStatement pst = con.prepareStatement(SQL_QUERY);
-			pst.setString(1, node.getId());
+			pst.setInt(1, node.getIdInt());
 			pst.setString(2, node.getUser());
 			pst.setString(3, node.getLongitude());
 			pst.setString(4, node.getLatitude());
@@ -130,7 +130,7 @@ public class NodeDAO implements INodeDAO {
 			String SQL_QUERY = "INSERT INTO nodetag (node_id, key, value)" +
 	                   "VALUES (?, ?, ?)";
 			PreparedStatement pst = con.prepareStatement(SQL_QUERY);
-			pst.setString(1, nodeID);
+			pst.setInt(1, Integer.parseInt(nodeID));
 			pst.setString(2, tag.getKey());
 			pst.setString(3, tag.getValue());
 			return (pst.executeUpdate()>0);

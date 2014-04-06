@@ -10,6 +10,10 @@ public class Node {
 	public String getId() {
 		return id;
 	}
+	
+	public int getIdInt() {
+		return Integer.parseInt(id);
+	}
 
 	public void setId(String id) {
 		this.id = id;
