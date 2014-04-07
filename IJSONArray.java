@@ -1,5 +1,7 @@
 package hw2;
 
+import java.util.HashSet;
+
 import org.json.simple.JSONArray;
 
 public interface IJSONArray {
@@ -21,7 +23,7 @@ public interface IJSONArray {
 	 * and should not be included in the returned JSON array.
 	 */
 	public JSONArray printJSONArray(String id, String name, String website,
-			String wiki, int numUniqueNodes, String[][] uniqueCoordinates,
-			double areaCircumscribedCircle, String[] users);
+			String wiki, int numNodes, String[][] wayCoordinates,
+			double areaCircumscribedCircle, HashSet<String> users);
 			
 }
