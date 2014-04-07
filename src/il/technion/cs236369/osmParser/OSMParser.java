@@ -1,4 +1,6 @@
-package hw2;
+package il.technion.cs236369.osmParser;
+
+import il.technion.cs236369.osmParser.data.IDatabaseRequirements;
 
 import java.io.PrintStream;
 import javax.xml.parsers.SAXParser;

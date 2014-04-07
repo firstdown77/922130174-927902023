@@ -1,4 +1,4 @@
-package hw2;
+package il.technion.cs236369.osmParser;
 
 import java.util.Set;
 

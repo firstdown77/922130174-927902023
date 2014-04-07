@@ -1,7 +1,7 @@
 /**
  * 
  */
-package hw2;
+package il.technion.cs236369.osmParser;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;

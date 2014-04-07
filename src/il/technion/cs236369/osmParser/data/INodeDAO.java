@@ -1,4 +1,6 @@
-package hw2;
+package il.technion.cs236369.osmParser.data;
+
+import java.util.Collection;
 
 /**
  * This database should contain 2 tables (not 1).
@@ -8,16 +10,26 @@ package hw2;
  * @author raphaelas
  *
  */
-public interface IDatabaseRequirements {
+public interface INodeDAO {
 
+	/**
+	 * opens the connection to the underlying storage system
+	 */
+	public void open();
+	
+	/**
+	 * closes the connection to the underlying storage system
+	 */
+	public void close();
+	
     /**
      * Returns an array with three String elements:
      * 1. nodeLatitude.  2. nodeLongitude.  3. nodeUser
      * 
      * @param nodeID A unique nodeID - a String of an integer.
-     * @return a String array of size 3.
+     * @return a Node containing the node  information or NULL if the node does not exist.
      */
-	String[] getNodeData(String nodeID);
+	Node getNodeData(String nodeID);
 	
 	/**
 	 * Returns a 2D array containing all "tags" belonging to a "node".
@@ -27,33 +39,26 @@ public interface IDatabaseRequirements {
 	 * @param nodeID A unique nodeID - a String of an integer.
 	 * @return 2D String array containing all a node's tags.
 	 */
-	String[][] getAllNodeTags(String nodeID);
+	Collection<NodeTag> getAllNodeTags(String nodeID);
 
     /**
      * Saves four fields describing a "node."
      * Returns true if save successful.  Returns false if save failed.
      * Nodes with duplicate nodeIDs should not be saved (if such duplicates exist).
-     * The nodeTags double array is a list of every tag's key, value pairs (so each
-     * inner array of the 2D array contains just 2 elements: key, value.)
-     * 
-     * @param nodeID a node's ID number - this should already have been made unique.
-     * @param nodeLatitude a node's latitude - a String of a double.
-     * @param nodeLongitude a node's longitude - a String of a double.
-     * @param nodeUser a node's user - a String.
+     *
+     * @param node the node to save
      * @return True if save successful, false if failed.
      */
-	boolean saveNodeData(String nodeID, String nodeLatitude,
-			String nodeLongitude, String nodeUser);
+	boolean saveNodeData(Node node);
 	
 	
 	/**
-	 * Saves a node's tag - a key, value pair.  Must be accessible by nodeID.
+	 * Saves a node's tag - a key, value pair.  
 	 * 
 	 * @param nodeID A unique nodeID - a String of an integer.
-	 * @param nodeKey A node key - a String.
-	 * @param nodeValue A node value - a String.
+	 * @param tag a node tag to store
 	 * @return true if save successful, false if failed.
 	 */
-	boolean saveNodeTag(String nodeID, String nodeKey, String nodeValue);
+	boolean saveNodeTag(String nodeID, NodeTag tag);
 
 }
