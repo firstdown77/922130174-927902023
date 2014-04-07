@@ -30,7 +30,6 @@ public class InnerOSMParser extends DefaultHandler {
     boolean inWay = false;
     private ArrayList<String> elementRefs;
 	private IJSONArray jArray;
-	//private IDatabaseRequirements db;
 	private ICalculateCircumscribedCircleArea area;
 	private ITagsRequired tagsRequired;
 	private Map<String, String> tagsMap;
@@ -83,8 +82,6 @@ public class InnerOSMParser extends DefaultHandler {
 	    		nodeLongitude = atts.getValue("lon");
 	    		nodeUser = atts.getValue("user");
 	    		addNodeData();
-	    		//db.saveNodeData(nodeID, nodeLatitude, nodeLongitude, nodeUser);
-			    //xmlReader.setContentHandler(new NodeHandler(xmlReader, this));
 	    	}
 	    	else if (qName.equals("way")) {
 	    		if (parseCount == 1) {
