@@ -17,7 +17,6 @@ public class TempTagsRequired implements ITagsRequired {
 	 */
 	@Override
 	public Map<String, String> getTags() {
-		// TODO Auto-generated method stub
 		Map<String, String> theMap = new HashMap<String, String>();
 		theMap.put("name", "Roosevelt Island Tramway");
 		return theMap;

@@ -12,7 +12,6 @@ import org.xml.sax.helpers.DefaultHandler;
 //import org.xml.sax.SAXException;
 
 /**
- * TODO: Dealing with relations.
  * 
  * @author raphaelas
  *

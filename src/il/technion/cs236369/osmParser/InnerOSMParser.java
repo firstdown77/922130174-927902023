@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.json.simple.JSONArray;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -28,7 +29,6 @@ public class InnerOSMParser extends DefaultHandler {
     boolean inWay = false;
     private ArrayList<String> elementRefs;
 	private IJSONArray jArray;
-	private ICalculateCircumscribedCircleArea area;
 	private ITagsRequired tagsRequired;
 	private Map<String, String> tagsMap;
 	private String nodeID;
@@ -39,7 +39,7 @@ public class InnerOSMParser extends DefaultHandler {
 	private String nodeLatitude;
 	private String nodeLongitude;
 	private String nodeUser;
-	private HashMap<String, String[]> nodeData;
+	private HashMap<String, Node> nodeData;
 	private HashSet<Way> savedWays;
 	private int kSize;
 	private Set<String> keys;
@@ -61,7 +61,7 @@ public class InnerOSMParser extends DefaultHandler {
     	wayTags = new HashMap<String, String>();
     	keys = tagsMap.keySet();
     	kSize = keys.size();
-    	nodeData = new HashMap<String, String[]>(); //TODO maybe change.
+    	nodeData = new HashMap<String, Node>();
 
 	}
 	
@@ -119,10 +119,7 @@ public class InnerOSMParser extends DefaultHandler {
 	}
 
 	private void addNodeData() {
-		String[] toAdd = new String[3];
-		toAdd[0] = nodeLatitude;
-		toAdd[1] = nodeLongitude;
-		toAdd[2] = nodeUser;
+		Node toAdd = new Node(nodeID, nodeLatitude, nodeLongitude, nodeUser);
 		nodeData.put(nodeID, toAdd);
 	}
 
@@ -132,10 +129,8 @@ public class InnerOSMParser extends DefaultHandler {
     public void endDocument() throws SAXException {
     	if (parseCount == 0) System.out.println("Halfway complete!");
     	else {
-    		for (Way w : savedWays) {
-    			printJSONArray(w);
+    		printJSONArray();
     		}
-    	}
     }
     
     /**
@@ -147,19 +142,7 @@ public class InnerOSMParser extends DefaultHandler {
     public void addRef(String refToAdd) {
     	elementRefs.add(refToAdd);
     }
-    
-    /**
-     * Saves a node's tag to the database by nodeID.
-     * 
-     * @param nodeKey A node's tag's key.
-     * @param nodeValue A node's tag's value.
-     */
-    /*
-    public void addKV(String nodeKey, String nodeValue) {
-    	db.saveNodeTag(nodeID, nodeKey, nodeValue);
-    	//determineContainsRequiredTags();
-    }
-    */
+
     /**
      * Adds a tag to the current way's tags Map.
      * 
@@ -193,44 +176,32 @@ public class InnerOSMParser extends DefaultHandler {
      * Printing preparations include getting the way coordinates,
      * and making the node references and way coordinates unique.
      */
-    private void printJSONArray(Way w) {
-		uniqueifyNodes(w); //Makes elementRefs unique.
-		String[][] wayCoordinates = getWayCoordinates(w);
-		//String[][] uniqueWayCoordinates = uniqueifyCoordinates(wayCoordinates);
-    	double circumscribedCircleArea = 2.0; //area.circumscribedArea(uniqueWayCoordinates);
-    	//JSONArray jArrayToPrint = jArray.printJSONArray(w.getId(), w.getName(), w.getWebsite(), w.getWiki(), w.getNumNodes(),
-    	//		wayCoordinates, circumscribedCircleArea, w.getUsers());
-    	//System.out.println(jArrayToPrint);
-    	System.out.println("" + w.getId() + " " + w.getName() + " " + w.getWebsite() +
-    			" " + w.getWiki() + " " + w.getNumNodes() + " " + wayCoordinates +
-    			" " + circumscribedCircleArea + " " + w.getUsers());
+    private void printJSONArray() {
+    	HashMap<Way, Position[]> positionMap = new HashMap<Way, Position[]>();
+    	for (Way w : savedWays) {
+    		uniqueifyNodes(w); //Makes elementRefs unique.
+    		positionMap.put(w, getWayCoordinates(w));
+    	}
+    	/*Note: area circle is not being given to JSONArray the way this method
+    	is currently implemented.*/
+    	JSONArray jArrayToPrint = jArray.printJSONArray(savedWays, positionMap);
+    	System.out.println(jArrayToPrint);
     }
     /**
      *  Determines if a recently parsed way is a closed way or not.
      *	A closed way is a way that begins and ends at the same coordinates.
      *
-     *  This method checks if nodes with different ID's might
+     *  This method does not check if nodes with different ID's might
      *	have the same coordinates - and really be a closed way when
      *  it may seem that it's an open way.
+     *  Note: the elementRefs have not been made unique yet.
      */
-    public boolean determineClosedWay() {
-    	// Lots of preparations before determining if a node is a closed way:
-    	// Note: the elementRefs have not been made unique yet.
+    private boolean determineClosedWay() {
     	int theSize = elementRefs.size();
     	String firstRef = elementRefs.get(0);
     	String lastRef = elementRefs.get(theSize - 1);
-    	/*String[] firstNodeData = nodeData.get(firstRef);
-    	String[] lastNodeData = nodeData.get(lastRef);
-    	String[] firstRefCoords = new String[1];
-    	String[] lastRefCoords = new String[1];
-    	firstRefCoords[0] = firstNodeData[0];
-    	firstRefCoords[1] = firstNodeData[1];
-    	lastRefCoords[0] = lastNodeData[0];
-    	lastRefCoords[1] = lastNodeData[1]; */
-    	/* If this is a closed way (the first and last nodes have the same ID
-    	   or have the same coordinates): */
     	if (theSize > 0 &&
-    			(firstRef.equals(lastRef))) { // || firstRefCoords.equals(lastRefCoords))) {
+    			(firstRef.equals(lastRef))) {
     		return true;
     	}
     	return false;
@@ -244,7 +215,7 @@ public class InnerOSMParser extends DefaultHandler {
      * @return true if the current Way contains all the given required tags
      * and false if the Way does not contain all of them.
      */
-    public boolean determineContainsRequiredTags() {
+    private boolean determineContainsRequiredTags() {
     	int containsCount = 0;
     	for (String k : keys) {
         	if (wayTags.containsKey(k) && wayTags.containsValue(tagsMap.get(k))) {
@@ -256,51 +227,11 @@ public class InnerOSMParser extends DefaultHandler {
     	}
     	return false;
     }
-    	//String[][] wayTagsToAdd = new String[wayTagsFromWay.length][1];                                
-    	//for (int i = 0; i < wayTagsFromWay.length; i++) {
-    		//TODO: Make sure this works.  Cloning may be necessary.
-    		//wayTagsToAdd[i] = wayTagsFromWay[i].split("=");
-    		// 2D array concatenation.
-    		//updatedCurrWayTags = concatArrays(currWayTags, wayTagsToAdd);
-    	//}
-    	/*
-    	for (int i = 0; i < keys.length; i++) {
-    		String currTagValue = tagsMap.get(keys[i]);
-    		String[] requiredTagsArray = new String[1];
-    		requiredTagsArray[0] = keys[0];
-    		requiredTagsArray[1] = currTagValue;
-    		List<String> requiredTagsList = Arrays.asList(requiredTagsArray);
-    		for (int j = 0; j < wayTagsToAdd.length; j++) {
-        		List<String> wayTagsList = Arrays.asList(wayTagsToAdd[j]);
-        		if (wayTagsList.containsAll(requiredTagsList)) {
-        			containsCount++;
-        		}
-    		}
-    	}*/
-
-
-    /**
-     * Taken from http://stackoverflow.com/questions/13722538/
-     * how-to-concatenate-two-dimensional-arrays-in-java
-     * 
-     * @param currWayTags
-     * @param wayTagsToAdd
-     * @return
-     */
-    /*
-    private String[][] concatArrays(String[][] currWayTags,
-			String[][] wayTagsToAdd) {
-    	String[][] result = new String[currWayTags.length + wayTagsToAdd.length][];
-    	System.arraycopy(currWayTags, 0, result, 0, currWayTags.length);
-    	System.arraycopy(wayTagsToAdd, 0, result, currWayTags.length, wayTagsToAdd.length);
-    	return result;
-	}
-    */
   
     /**
      * Removes nodes with duplicate IDs from the elementRefs ArrayList.
      */
-    public void uniqueifyNodes(Way w) {
+    private void uniqueifyNodes(Way w) {
     	HashSet<String> hs = new HashSet<String>();
     	hs.addAll(w.getElementRefs());
     	w.clearElementRefs();
@@ -315,36 +246,19 @@ public class InnerOSMParser extends DefaultHandler {
      * Note: elementRefs must already have been made unique.
      * @return a double array of all a Way's coordinates.
      */
-    public String[][] getWayCoordinates(Way w) {
+    private Position[] getWayCoordinates(Way w) {
     	ArrayList<String> elRefs = w.getElementRefs();
-    	String[][] theCoords = new String[elRefs.size()][2]; 
+    	Position[] theCoords = new Position[elRefs.size()]; 
     	for (int i = 0; i < elRefs.size(); i++) {
     		String currRef = elRefs.get(i);
-    		String[] currNodeArray = nodeData.get(currRef);
-    		w.addUser(currNodeArray[2]); //Add the node's user.
-    		theCoords[i][0] = currNodeArray[0]; //nodeLatitude
-    		theCoords[i][1] = currNodeArray[1]; //nodeLongitude
+    		Node currNode = nodeData.get(currRef);
+    		w.addUser(currNode.getUser()); //Add the node's user.
+    		double lat = Double.parseDouble(currNode.getLatitude());
+    		double lon = Double.parseDouble(currNode.getLongitude());
+    		theCoords[i] = new Position(lat, lon);
     	}
     	return theCoords;
     }
-    
-    /**
-     * Removes duplicate coordinate pairs from the 'wayCoordinates' 2D array.
-     * 
-     * @param wayCoords a double array of all an array's coordinates
-     * which may or may not be unique.
-     * @return a double array of all an array's unique coordinates.
-     */
-    //TODO decide if this is necessary.
-    /*
-    public String[][] uniqueifyCoordinates(String[][] wayCoords) {
-    	HashSet<String[]> keys = new HashSet<String[]>();
-    	for (int i = 0; i < wayCoords.length; i++) {
-    		keys.add(wayCoords[i]);
-    	}
-    	return (String[][]) keys.toArray();
-    }
-    */
 }
 
 

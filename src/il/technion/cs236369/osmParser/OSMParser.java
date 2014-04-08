@@ -18,8 +18,6 @@ import org.xml.sax.XMLReader;
  */
 public class OSMParser implements IOSMParser{
     private XMLReader xmlReader;
-	private static ITagsRequired tagsRequired;
-
 
 	/** Constants used for JAXP 1.2 */
     static final String JAXP_SCHEMA_LANGUAGE =
@@ -64,7 +62,6 @@ public class OSMParser implements IOSMParser{
 		try {
 			xmlReader = saxParser.getXMLReader();
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -79,30 +76,15 @@ public class OSMParser implements IOSMParser{
         try {
 			xmlReader.parse(osmFile);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         try {
 			xmlReader.parse(osmFile);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         
 	    return null;
-  }
-  
-  /**
-   * The main method starts the parser using a default constructor
-   * and not the constructor that takes an XMLReader as a parameter.
-   * The 1 parameter constructor is used in the parse(..) method.
-   * 
-   * @param args this parameter is not used.
-   */
-  public static void main(String[] args) {
-	  OSMParser theWorkingParser = new OSMParser();
-	  tagsRequired = new TempTagsRequired();
-	  theWorkingParser.parse("./lib/new-york-latest-full.osm", tagsRequired);
   }
   
   /**

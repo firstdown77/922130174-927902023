@@ -1,5 +1,6 @@
 package il.technion.cs236369.osmParser;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.json.simple.JSONArray;
@@ -8,22 +9,14 @@ public interface IJSONArray {
 	
 	/**
 	 * 
-	 * @param id ID to print
-	 * @param name name to print - will usually be null.
-	 * @param website website to print - will usually be null.
-	 * @param wiki wikipedia entry to print - will usually be null.
-	 * @param numUniqueNodes number (integer) of unique nodes belonging to way.
-	 * @param uniqueCoordinates Double array of all a way's unique coordinates.
-	 * @param areaCircumscribedCircle Way's circumscribed area - a double.
-	 * @param users An array of users contributing to Way.
-	 * @return The JSONArray which will be outputted.
+	 * @param waySet
+	 * @param positionMap
+	 * @return 	Returns a complete JSON array containing all of the required
+	 * parameters provided.  
 	 * 
-	 * Returns a complete JSON array containing all of the required
-	 * parameters provided.  Note: name, website, and wiki may be null
+	 * Note: name, website, and wiki may be null
 	 * and should not be included in the returned JSON array.
 	 */
-	public JSONArray printJSONArray(String id, String name, String website,
-			String wiki, int numNodes, String[][] wayCoordinates,
-			double areaCircumscribedCircle, HashSet<String> users);
-			
+	public JSONArray printJSONArray(
+			HashSet<Way> waySet, HashMap<Way, Position[]> positionMap);
 }
