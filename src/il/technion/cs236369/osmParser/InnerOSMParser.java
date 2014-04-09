@@ -18,13 +18,14 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * @author raphaelas
  *
+ * Where all the parsing magic happens.  The central method of this
+ * class is startElement().  Read its JavaDoc for more details.
  */
 public class InnerOSMParser extends DefaultHandler {
     private String id;
     private String name;
     private String website;
     private String wiki;
-    private int numNodes;
     private HashSet<String> users;    
     boolean inWay = false;
     private ArrayList<String> elementRefs;
@@ -45,7 +46,8 @@ public class InnerOSMParser extends DefaultHandler {
 	private Set<String> keys;
 	
 	/**
-	 * Constructor that is called in parse function.
+	 * Constructor that is called from the OSMParser's parse() function.
+	 * Initiates many class variables.
 	 * 
 	 * @param r An XMLReader.
 	 * @param i A class implementing ITagsRequired.
@@ -65,12 +67,24 @@ public class InnerOSMParser extends DefaultHandler {
 
 	}
 	
+	/**
+	 * Parser calls this at the start of both of the 2 times that
+	 * the parser is run.  Keeps track of whether it is currently
+	 * the first or second parser run.
+	 */
     public void startDocument() throws SAXException {
     	parseCount++;
     }
 	
     /**
-     * Parser calls this for each element in the document
+     * Parser calls this for each element in the document.
+     * 
+     * This method handles the logic of whether the Parser
+     * is currently on its first or second run.  On the first parser
+     * run, this method starts the process of saving all required
+     * Closed Ways.  On the second parser run, this method begins the
+     * process of saving all Nodes that belong to Ways saved during
+     * the first parser run.
      */
     public void startElement(String namespaceURI, String localName,
                              String qName, Attributes atts)
@@ -109,6 +123,14 @@ public class InnerOSMParser extends DefaultHandler {
     	}
     }
     
+    /**
+     * Determines if the current Node belongs to a Way that has been
+     * saved for future printing.
+     * 
+     * @return True if the current Node belongs to a Closed Way
+     * that contains the required tags, false if it does not belong to
+     * one such Way.
+     */
 	private boolean belongsToSavedWay() {
 		for (Way w : savedWays) {
 			if (w.getElementRefs().contains(nodeID)) {
@@ -118,13 +140,17 @@ public class InnerOSMParser extends DefaultHandler {
 		return false;
 	}
 
+	/**
+	 * Saves a node that belongs to a closed way with required tags.
+	 */
 	private void addNodeData() {
-		Node toAdd = new Node(nodeID, nodeLatitude, nodeLongitude, nodeUser);
+		Node toAdd = new Node(nodeLatitude, nodeLongitude, nodeUser);
 		nodeData.put(nodeID, toAdd);
 	}
 
 	/**
      * Parser calls this once after parsing a document.
+     * If it's the second parse run, call printJSONArray.
      */
     public void endDocument() throws SAXException {
     	if (parseCount == 0) System.out.println("Halfway complete!");
@@ -166,8 +192,12 @@ public class InnerOSMParser extends DefaultHandler {
     	wayTags.clear();
     }
     
+    /**
+     * Saves a way that has been determined to be a Closed Way
+     * and contains the required tags.
+     */
     public void saveWay() {
-    	Way toAdd = new Way(id, name, website, wiki, numNodes, users, elementRefs);
+    	Way toAdd = new Way(id, name, website, wiki, users, elementRefs);
     	savedWays.add(toAdd);
     }
     
@@ -182,11 +212,12 @@ public class InnerOSMParser extends DefaultHandler {
     		uniqueifyNodes(w); //Makes elementRefs unique.
     		positionMap.put(w, getWayCoordinates(w));
     	}
-    	/*Note: area circle is not being given to JSONArray the way this method
+    	/*Note: circle area is not being given to JSONArray the way this method
     	is currently implemented.*/
     	JSONArray jArrayToPrint = jArray.printJSONArray(savedWays, positionMap);
     	System.out.println(jArrayToPrint);
     }
+
     /**
      *  Determines if a recently parsed way is a closed way or not.
      *	A closed way is a way that begins and ends at the same coordinates.
@@ -195,6 +226,8 @@ public class InnerOSMParser extends DefaultHandler {
      *	have the same coordinates - and really be a closed way when
      *  it may seem that it's an open way.
      *  Note: the elementRefs have not been made unique yet.
+     * 
+     * @return True if the current Way is closed, false if it is open.
      */
     private boolean determineClosedWay() {
     	int theSize = elementRefs.size();
@@ -208,9 +241,7 @@ public class InnerOSMParser extends DefaultHandler {
 	}
     
     /**
-     * This method concatenates the way's tags from the WayHandler
-     * and also from the NodeHandler - because both Way elements 
-     * and a Way's node elements contain tags.
+     * Determine if a Way contains all the required tags.
      * 
      * @return true if the current Way contains all the given required tags
      * and false if the Way does not contain all of them.
@@ -230,6 +261,8 @@ public class InnerOSMParser extends DefaultHandler {
   
     /**
      * Removes nodes with duplicate IDs from the elementRefs ArrayList.
+     * 
+     * @param w A Way element, probably passed in during a loop.
      */
     private void uniqueifyNodes(Way w) {
     	HashSet<String> hs = new HashSet<String>();
@@ -244,7 +277,9 @@ public class InnerOSMParser extends DefaultHandler {
      * node is the node that has an 'nd ref' defined as one of the way's children.
    	 * Also adds contributing users to the 'users' array.
      * Note: elementRefs must already have been made unique.
-     * @return a double array of all a Way's coordinates.
+     * 
+     * @param w A Way element, probably passed in during a loop.
+     * @return An array of all of Way's Positions.
      */
     private Position[] getWayCoordinates(Way w) {
     	ArrayList<String> elRefs = w.getElementRefs();

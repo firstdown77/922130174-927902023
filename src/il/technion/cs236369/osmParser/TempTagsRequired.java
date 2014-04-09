@@ -7,6 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * TODO
+ * A temporary class to implement ITagsRequired.
+ * Called in the temporary main method.
  * @author raphaelas
  *
  */

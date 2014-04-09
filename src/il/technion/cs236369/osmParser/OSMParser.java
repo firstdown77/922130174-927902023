@@ -1,17 +1,14 @@
 package il.technion.cs236369.osmParser;
 
-import java.io.PrintStream;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.json.simple.JSONArray;
-import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 
-
 /**
- * The central OSM Parser class.
+ * The central OSM Parser class.  The outer class
+ * to InnerOSMParser - where the parsing really happens.
  * 
  * @author raphaelas
  *
@@ -26,13 +23,6 @@ public class OSMParser implements IOSMParser{
         "http://www.w3.org/2001/XMLSchema";
     static final String JAXP_SCHEMA_SOURCE =
         "http://java.sun.com/xml/jaxp/properties/schemaSource";
-	
-	/**
-	 * Default constructor.  Called in main function.
-	 */
-	public OSMParser() {
-		
-	}
     
   /**
    * The central parse method.  Takes the big 2.5 GB OSM file and a
@@ -68,9 +58,6 @@ public class OSMParser implements IOSMParser{
         // Set the ContentHandler of the XMLReader
         xmlReader.setContentHandler(new InnerOSMParser(xmlReader, tagsRequired));
 
-        // Set an ErrorHandler before parsing
-        xmlReader.setErrorHandler(new MyErrorHandler(System.err));
-
         // Tell the XMLReader to parse the XML document
         
         try {
@@ -86,49 +73,4 @@ public class OSMParser implements IOSMParser{
         
 	    return null;
   }
-  
-  /**
-   *  Error handler to report errors and warnings
-   *
-   */
-  private static class MyErrorHandler implements ErrorHandler {
-      /** Error handler output goes here */
-      private PrintStream out;
-
-      MyErrorHandler(PrintStream out) {
-          this.out = out;
-      }
-
-      /**
-       * Returns a string describing parse exception details
-       */
-      private String getParseExceptionInfo(SAXParseException spe) {
-          String systemId = spe.getSystemId();
-          if (systemId == null) {
-              systemId = "null";
-          }
-          String info = "URI=" + systemId +
-              " Line=" + spe.getLineNumber() +
-              ": " + spe.getMessage();
-          return info;
-      }
-
-      // The following methods are standard SAX ErrorHandler methods.
-      // See SAX documentation for more info.
-      
-      public void warning(SAXParseException spe) throws SAXException {
-          out.println("Warning: " + getParseExceptionInfo(spe));
-      }
-      
-      public void error(SAXParseException spe) throws SAXException {
-          String message = "Error: " + getParseExceptionInfo(spe);
-          throw new SAXException(message);
-      }
-
-      public void fatalError(SAXParseException spe) throws SAXException {
-          String message = "Fatal Error: " + getParseExceptionInfo(spe);
-          throw new SAXException(message);
-      }
-  }
-
 }
