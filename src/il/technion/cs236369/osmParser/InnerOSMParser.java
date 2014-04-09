@@ -16,10 +16,10 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * @author raphaelas
- *
  * Where all the parsing magic happens.  The central method of this
  * class is startElement().  Read its JavaDoc for more details.
+ * 
+ * @author raphaelas
  */
 public class InnerOSMParser extends DefaultHandler {
     private String id;
@@ -44,6 +44,7 @@ public class InnerOSMParser extends DefaultHandler {
 	private HashSet<Way> savedWays;
 	private int kSize;
 	private Set<String> keys;
+	private JSONArray jArrayToPrint;
 	
 	/**
 	 * Constructor that is called from the OSMParser's parse() function.
@@ -64,6 +65,7 @@ public class InnerOSMParser extends DefaultHandler {
     	keys = tagsMap.keySet();
     	kSize = keys.size();
     	nodeData = new HashMap<String, Node>();
+    	jArray = new JSONWayParser();
 
 	}
 	
@@ -114,13 +116,40 @@ public class InnerOSMParser extends DefaultHandler {
 	    		inWay = true;
 			    users = new HashSet<String>();
 			    id = atts.getValue("id");
-			    name = atts.getValue("name");
-			    website = atts.getValue("website");
-			    wiki = atts.getValue("wiki");
+			    name = null;
+			    website = null;
+			    wiki = null;
 			    users.add(atts.getValue("user"));
 			    xmlReader.setContentHandler(new WayHandler(xmlReader, this));
 	    	}
     	}
+    }
+    
+    /**
+     * Name setter.  Called from WayHandler when parsing the 
+     * current Way's tags.
+     * @param n  The name to save.
+     */
+    public void setName(String n) {
+    	name = n;
+    }
+    
+    /**
+     * Wikipedia entry setter.  Called from WayHandler when parsing the 
+     * current Way's tags.
+     * @param w The Wikipedia entry to save.
+     */
+    public void setWiki(String w) {
+    	wiki = w;
+    }
+    
+    /**
+     * Website setter.  Called from WayHandler when parsing the 
+     * current Way's tags.
+     * @param w The website to save.
+     */
+    public void setWebsite(String w) {
+    	website = w;
     }
     
     /**
@@ -214,8 +243,17 @@ public class InnerOSMParser extends DefaultHandler {
     	}
     	/*Note: circle area is not being given to JSONArray the way this method
     	is currently implemented.*/
-    	JSONArray jArrayToPrint = jArray.printJSONArray(savedWays, positionMap);
-    	System.out.println(jArrayToPrint);
+    	jArrayToPrint = jArray.printJSONArray(savedWays, positionMap);
+    }
+    
+    /**
+     * Comleted JSONArray getter.  Called by OSMParser when returning the
+     * final JSONArray.
+     * 
+     * @return The JSONArray to be returned at the conclusion of all parsing
+     */
+    public JSONArray getJSONArray() {
+    	return jArrayToPrint;
     }
 
     /**

@@ -39,6 +39,15 @@ public class WayHandler extends DefaultHandler implements IInnerParse {
     	if (qName.equals("tag")) {
     		String key = attributes.getValue("k");
     		String value = attributes.getValue("v");
+    		if (key.equals("name")) {
+    			parentParser.setName(value);
+    		}
+    		else if (key.equals("wikipedia")) {
+    			parentParser.setWiki(value);
+    		}
+    		else if (key.equals("url")) {
+    			parentParser.setWebsite(value);
+    		}
     		parentParser.addWayTag(key, value);
     	}
     	else if (qName.equals("nd")) {

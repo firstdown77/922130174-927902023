@@ -4,8 +4,9 @@
 package il.technion.cs236369.osmParser;
 
 /**
+ * This class contains the main method.
+ * 
  * @author raphaelas
- *
  */
 public class Main {
 	private static ITagsRequired tagsRequired;

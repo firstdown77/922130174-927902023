@@ -1,15 +1,18 @@
 package il.technion.cs236369.osmParser;
 
-import java.util.Collection;
-
+/**
+ * Interface for a class that returns the way's circumscribed area.
+ * 
+ * @author raphaelas
+ */
 public interface ICalculateCircumscribedCircleArea {
 	
 	/**
-	 * Returns the way's circumscribed area.
+
 	 * Note: wayCoordinates have already been made unique.
 	 * 
 	 * @param wayCoordinates A 2D array containing all of a way's *unique* coordinates.
 	 * @return The Way's circumscribed area - a double.
 	 */
-	double circumscribedArea(Collection<Position> wayCoordinates);
+	double circumscribedArea(Position[] wayCoordinates);
 }

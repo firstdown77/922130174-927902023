@@ -2,6 +2,12 @@ package il.technion.cs236369.osmParser;
 
 import java.util.Set;
 
+/**
+ * Class provided in the assignment to help calculate circumscribed
+ * circle areas.
+ * 
+ * @author raphaelas
+ */
 public class Position {
 	private static final double EARTH_MEAN_RADIUS = 6371.009; // KMs
 

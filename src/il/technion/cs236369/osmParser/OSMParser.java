@@ -54,9 +54,10 @@ public class OSMParser implements IOSMParser{
 		} catch (SAXException e) {
 			e.printStackTrace();
 		}
-
+		
+		InnerOSMParser theInnerParser = new InnerOSMParser(xmlReader, tagsRequired);
         // Set the ContentHandler of the XMLReader
-        xmlReader.setContentHandler(new InnerOSMParser(xmlReader, tagsRequired));
+        xmlReader.setContentHandler(theInnerParser);
 
         // Tell the XMLReader to parse the XML document
         
@@ -71,6 +72,6 @@ public class OSMParser implements IOSMParser{
 			e.printStackTrace();
 		}
         
-	    return null;
+	    return theInnerParser.getJSONArray();
   }
 }
